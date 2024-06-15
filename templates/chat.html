@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Chat Interface</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background-image: url('../static/bg3.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 1s ease-in-out; 
+        }
+
+
+        .container {
+            background-color: rgba(149, 91, 105, 0.75);
+        }
+
+        #chat_area {
+            overflow-y: auto;
+            max-height: 50vh;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        #chat_area>div {
+            max-width: 75%;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            word-wrap: break-word;
+        }
+
+        #chat_area>div.user {
+            align-self: flex-end;
+            background-color: #4a4750;
+            color: white;
+        }
+
+        #chat_area>div.bot {
+            align-self: flex-start;
+            background-color: #2c2730;
+            color: white;
+        }
+
+        .lds-ellipsis {
+            display: inline-block;
+            position: relative;
+            width: 64px;
+            height: 20px;
+        }
+
+        .lds-ellipsis div {
+            position: absolute;
+            top: 9px;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: #fff;
+            animation-timing-function: cubic-bezier(0, 1, 1, 0);
+        }
+
+        .lds-ellipsis div:nth-child(1) {
+            left: 6px;
+            animation: lds-ellipsis1 0.6s infinite;
+        }
+
+        .lds-ellipsis div:nth-child(2) {
+            left: 6px;
+            animation: lds-ellipsis2 0.6s infinite;
+        }
+
+        .lds-ellipsis div:nth-child(3) {
+            left: 26px;
+            animation: lds-ellipsis2 0.6s infinite;
+        }
+
+        .lds-ellipsis div:nth-child(4) {
+            left: 45px;
+            animation: lds-ellipsis3 0.6s infinite;
+        }
+
+        @keyframes lds-ellipsis1 {
+            0% {
+                transform: scale(0);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes lds-ellipsis3 {
+            0% {
+                transform: scale(1);
+            }
+
+            100% {
+                transform: scale(0);
+            }
+        }
+
+        @keyframes lds-ellipsis2 {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(19px, 0);
+            }
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+            $('#submit').click(function () {
+                var user_input = $('#user_input').val();
+                $('#user_input').val('');
+
+                $('#loading').removeClass('hidden');
+
+                $.ajax({
+                    url: '/chat',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        user_input: user_input
+                    }),
+                    success: function (data) {
+                        $('#loading').addClass('hidden');
+                        
+                        $('#chat_area').append('<div class="user">' + user_input + '</div>');
+                        const formattedResponse = data.response.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                        $('#chat_area').append('<div class="bot">' + formattedResponse + '</div>');
+
+                        $('#chat_area').scrollTop($('#chat_area')[0].scrollHeight);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error(error);
+                    }
+                });
+            });
+        });
+
+        window.onload = function() {
+            const backgroundImages = [
+                '../static/bg1.jpeg',
+                '../static/bg8.jpeg',
+                '../static/bg7.jpeg',
+                '../static/bg2.jpeg',
+                '../static/bg4.jpeg',
+                '../static/bg6.jpeg',
+                '../static/bg5.jpeg',
+                '../static/bg10.jpeg',
+                '../static/bg9.jpeg',
+                '../static/bg3.jpeg',
+            ];
+
+            let currentIndex = 0;
+            const body = document.querySelector('body');
+
+            function updateBackgroundImage() {
+                body.style.transition = 'background-image 1s ease-in-out'; 
+                currentIndex = (currentIndex + 1) % backgroundImages.length;
+                body.style.backgroundImage = `url('${backgroundImages[currentIndex]}')`;
+            }
+
+            function startBackgroundCycle() {
+                updateBackgroundImage();
+                setInterval(updateBackgroundImage, 60 * 1000); 
+            }
+
+            const chatArea = document.getElementById('chat_area');
+            const chatBubbles = chatArea.getElementsByTagName('div');
+            for (let i = 0; i < chatBubbles.length; i++) {
+                const bubble = chatBubbles[i];
+                const text = bubble.textContent;
+                const formattedText = text.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                bubble.innerHTML = formattedText;
+            }
+
+            setTimeout(startBackgroundCycle, 60 * 1000);
+        }
+    </script>
+</head>
+
+<body class="flex justify-center items-center h-screen">
+    <div class="container mx-auto px-4 md:px-8 py-8 bg-white rounded-md shadow-lg w-full max-w-screen-lg">
+        <h1 class="text-3xl lg:text-4xl font-bold text-center mb-8">
+            <span class="text-white font-bold">Hello! I'm your new Travel Pal</span>
+        </h1>
+
+        <div id="chat_area" class="overflow-y-auto max-h-96">
+            {% for chat in chat_history %}
+            <div class="user">{{ chat.user }}</div>
+            <div class="bot">{{ chat.bot }}</div>
+            {% endfor %}
+        </div>
+        <div id="loading" class="flex justify-center items-center mb-4 hidden">
+            <div class="lds-ellipsis">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+        </div>
+        <div class="flex mt-4">
+            <input type="text" id="user_input"
+                class="flex-1 p-4 rounded-l-lg border-t mr-2 focus:outline-none focus:border-blue-500 text-lg lg:text-xl"
+                placeholder="Type here...">
+            <button id="submit"
+                class="p-4 rounded-r-lg bg-blue-500 text-white text-lg lg:text-xl transition duration-300 ease-in-out transform hover:scale-105">Send</button>
+        </div>
+
+    </div>
+</body>
+
+</html>
